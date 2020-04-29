@@ -6,7 +6,7 @@ frontend/node_modules
 .env.save
 .env.save.1
 .gitignore~
-.git
+.git/
 .gitignore
 .vscode/
 .idea/

@@ -260,7 +260,7 @@ export default function BodyComponent() {
   );
 
   return (
-    <React.Fragment>
+    <>
       <div className={classes.rootBody}>
         <Grid container spacing={3} className={classes.convoDisplay}>
           <Grid item xs={12} component={"a"}>
@@ -286,6 +286,6 @@ export default function BodyComponent() {
         </Grid>
       </div>
       <div>{conversation.length ? conversationDisplay : null}</div>
-    </React.Fragment>
+    </>
   );
 }
