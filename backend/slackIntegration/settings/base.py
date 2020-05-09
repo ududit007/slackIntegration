@@ -10,6 +10,9 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
+
+""" sudo python3 manage.py runsslserver --certificate /home/udit/localhost+2.pem --key /home/udit/localhost+2-key.pem 
+"""
 import os
 from dotenv import load_dotenv
 from django.core.exceptions import ImproperlyConfigured
@@ -62,6 +65,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'sslserver',
     'corsheaders',
     'slackI'
 ]

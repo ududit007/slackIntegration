@@ -1,18 +1,17 @@
-import React, { useState } from "react";
-import { InputBase, IconButton, InputLabel, MenuItem } from "@material-ui/core";
+import React, { useState, useEffect } from "react";
+import { InputLabel, MenuItem, useMediaQuery } from "@material-ui/core";
 import { Grid, FormControl, Select, Button, Paper } from "@material-ui/core";
-import { withStyles, makeStyles } from "@material-ui/core/styles";
+import { withStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import { Table, TableBody, TableCell, TableContainer } from "@material-ui/core";
 import { TableHead, TableRow } from "@material-ui/core";
 import {
   MuiPickersUtilsProvider,
   KeyboardDatePicker,
 } from "@material-ui/pickers";
-import SearchIcon from "@material-ui/icons/Search";
-import slacIcon from "../../assets/slack.png";
 import DateFnsUtils from "@date-io/date-fns";
 import * as SlackAction from "../../action/SlackAction";
-
+import Axios from "axios";
+import ConversationDisplay from "./ConversationDisplay";
 
 const useStyles = makeStyles((theme) => ({
   rootBody: {
@@ -21,7 +20,7 @@ const useStyles = makeStyles((theme) => ({
     alignItems: "center",
     marginLeft: "30%",
     width: "30%",
-    marginTop: "12%",
+    marginTop: "4%",
     marginBottom: "2%",
   },
   input: {
@@ -52,7 +51,7 @@ const useStyles = makeStyles((theme) => ({
   },
   formControl: {
     margin: theme.spacing(1),
-    minWidth: 120,
+    // minWidth: 120,
   },
   table: {
     minWidth: 700,
@@ -61,14 +60,32 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: 0,
   },
   buttons: {
-    background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)",
+    backgroundColor: theme.palette.common.black,
     border: 0,
     borderRadius: 3,
     boxShadow: "0 3px 5px 2px rgba(255, 105, 135, .3)",
-    color: "white",
+    color: theme.palette.common.white,
     height: 48,
     padding: "0 30px",
+    justifyContent: "center",
+    marginTop: "20px",
+    "&:hover": {
+      backgroundColor: theme.palette.common.black,
+      color: "blue",
+    },
   },
+  channelStyle: {
+    display: "flex",
+    justify: "center",
+    [theme.breakpoints.down("sm")]: {
+      display: "block",
+      textAlign: "center"
+  }
+  },
+  dates: {
+    [theme.breakpoints.down("sm")]: {
+      display: "block",
+  }}
 }));
 
 // Styling of table cell
@@ -91,24 +108,34 @@ const StyledTableRow = withStyles((theme) => ({
   },
 }))(TableRow);
 
-export default function BodyComponent() {
+export default function BodyComponent(props) {
   const classes = useStyles();
-  const [tokenTeam, setTokenTeam] = useState("");
+  var date = new Date();
+  const theme = useTheme();
   const [channelList, setChannelList] = useState([]);
   const [channel, setChannel] = useState("");
   const [open, setOpen] = useState(false);
+  const [openUser, setOpenUser] = useState(false);
   const [conversation, setConversation] = useState([]);
+  const [user, setUser] = useState([]);
   const [channelId, setChannelId] = useState("");
-  const [startDate, setStartDate] = useState(new Date(Date.now()));
-  const [endDate, setEndDate] = useState(new Date(Date.now()));
+  const [startDate, setStartDate] = useState(
+    new Date(date.getFullYear(), date.getMonth() - 1, 2)
+      .toISOString()
+      .slice(0, 10)
+  );
+  const [endDate, setEndDate] = useState(
+    new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10)
+  );
+  const matchesSM = useMediaQuery(theme.breakpoints.down("sm"));
 
-  
-  // To get conversation of selected channel 
+  // To get conversation of selected channel
   const getConversation = async (id) => {
     try {
       let response = await SlackAction.getConversations(id, startDate, endDate);
       if (response) {
-        setConversation(response);
+        setConversation(response[0].conversation_list);
+        setUser(response[0].channel_user);
       }
     } catch (error) {
       console.log(error);
@@ -132,8 +159,12 @@ export default function BodyComponent() {
     setOpen(true);
   };
 
-  const handleChange = (event) => {
-    setTokenTeam(event.target.value);
+  const handleCloseUser = () => {
+    setOpenUser(false);
+  };
+
+  const handleOpenUser = () => {
+    setOpenUser(true);
   };
 
   const handleStartDateChange = (date) => {
@@ -144,13 +175,34 @@ export default function BodyComponent() {
     setEndDate(date.toISOString().slice(0, 10));
   };
 
-  
-  // To get list of channels of selected team 
-  const changeToken = async (event) => {
-    event.preventDefault();
+  const getToken = async (code) => {
+    try {
+      const response = await Axios.get(
+        `https://slack.com/api/oauth.v2.access?client_id=1069051054627.1081234990135&client_secret=1d5b31b0a7d20b4baffbf2e86f1db413&code=${code}`
+      );
+      let access_token = response.data["authed_user"].access_token;
+      console.log("token:", access_token);
+      changeToken(access_token);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  useEffect(() => {
+    props.showSignIn(false);
+    if (props.location && props.location.state) {
+      let code = props.location.state.code;
+      getToken(code);
+    }
+  }, []);
+
+  // To get list of channels of selected team
+  const changeToken = async (tokenTeam) => {
     try {
       if (tokenTeam) {
-        let response = await SlackAction.getChannelList({token_team: tokenTeam});
+        let response = await SlackAction.getChannelList({
+          token_team: tokenTeam,
+        });
         if (response) {
           setChannelList(response);
         }
@@ -161,69 +213,64 @@ export default function BodyComponent() {
     return false;
   };
 
-
-  /* To display conversation of selected channel 
-  in tabular format */
-  const conversationDisplay = (
-    <TableContainer component={Paper}>
-      <Table className={classes.table} aria-label="customized table">
-        <TableHead>
-          <TableRow>
-            <StyledTableCell>Sender</StyledTableCell>
-            <StyledTableCell align="right">Message</StyledTableCell>
-            <StyledTableCell align="right">Date</StyledTableCell>
-            <StyledTableCell align="right">sender_email</StyledTableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {conversation.map((row, index) => (
-            <StyledTableRow key={(row, index)}>
-              <StyledTableCell component="th" scope="row">
-                {row.sender_name}
-              </StyledTableCell>
-              <StyledTableCell align="right">{row.message}</StyledTableCell>
-              <StyledTableCell align="right">
-                {row.message_date}
-              </StyledTableCell>
-              <StyledTableCell align="right">
-                {row.sender_email}
-              </StyledTableCell>
-            </StyledTableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
-
-  // To display list of channels of selected team
-  const channelDisplay = (
-    <div>
+  // display list of users of selected channel
+  const userDisplay = (
+    <>
       <Button className={classes.button} onClick={handleOpen}>
-        Select the Channel
+        Select the User
       </Button>
       <FormControl className={classes.formControl}>
-        <InputLabel id="demo-controlled-open-select-label">Channels</InputLabel>
+        <InputLabel id="user-controlled-open-select-label">Users</InputLabel>
         <Select
-          labelId="demo-controlled-open-select-label"
-          id="demo-controlled-open-select"
-          open={open}
-          onClose={handleClose}
-          onOpen={handleOpen}
-          value={channel}
-          onChange={handleChannelId}
+          labelId="user-controlled-open-select-label"
+          id="user-controlled-open-select"
+          open={openUser}
+          onClose={handleCloseUser}
+          onOpen={handleOpenUser}
+          value={user}
         >
-          {channelList.map((ele, index) => (
-            <MenuItem value={ele.channel_id} key={(ele, index)}>
+          {user.map((ele, index) => (
+            <MenuItem value={Object.keys(ele)[0]} key={(ele, index)}>
               {" "}
-              {ele.channel_name}
+              {ele[Object.keys(ele)[0]]}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
-      {/* Date pickers to filter conversation */}
-      <MuiPickersUtilsProvider utils={DateFnsUtils}>
-        <Grid container justify="space-around">
+    </>
+  );
+
+  // To display list of channels of selected team
+  const channelDisplay = (
+    <>
+      <div style={{ textAlign: "center" }}>
+        <FormControl variant="filled" className={classes.formControl}>
+          <InputLabel htmlFor="filled-channel-native-simple">
+            Channels
+          </InputLabel>
+          <Select
+            native
+            value={channel}
+            onChange={handleChannelId}
+            inputProps={{
+              name: "channel",
+              id: "filled-channel-native-simple",
+            }}
+          >
+            {channelList.map((ele, index) => (
+              <option value={ele.channel_id} key={(ele, index)}>
+                {" "}
+                {ele.channel_name}
+              </option>
+            ))}
+          </Select>
+        </FormControl>
+      </div>
+      <div className={classes.channelStyle}>
+        {/* Date pickers to filter conversation */}
+        <MuiPickersUtilsProvider utils={DateFnsUtils}>
           <KeyboardDatePicker
+            className={classes.dates}
             disableToolbar
             variant="inline"
             format="dd/MM/yyyy"
@@ -235,8 +282,10 @@ export default function BodyComponent() {
             KeyboardButtonProps={{
               "aria-label": "change date",
             }}
+            style={{  marginRight : matchesSM ? 0 : "15px" }}
           />
           <KeyboardDatePicker
+            className={classes.dates}
             disableToolbar
             variant="inline"
             format="dd/MM/yyyy"
@@ -249,43 +298,46 @@ export default function BodyComponent() {
               "aria-label": "change date",
             }}
           />
-        </Grid>
-      </MuiPickersUtilsProvider>
-      <div>
+        </MuiPickersUtilsProvider>
+      </div>
+      <div style={{ textAlign: "center" }}>
         <Button onClick={handleChannel} className={classes.buttons}>
           Submit
         </Button>
       </div>
-    </div>
+    </>
   );
 
   return (
     <>
       <div className={classes.rootBody}>
         <Grid container spacing={3} className={classes.convoDisplay}>
-          <Grid item xs={12} component={"a"}>
-            <img src={slacIcon} alt="icon" className={classes.icon} />
-          </Grid>
-          <Grid item xs={12}>
-            <InputBase
-              className={classes.input}
-              placeholder="Search Slack channels"
-              inputProps={{ "aria-label": "Search Slack channels" }}
-              onChange={handleChange}
-            />
-            <IconButton
-              type="submit"
-              className={classes.iconButton}
-              aria-label="search"
-              onClick={changeToken}
-            >
-              <SearchIcon />
-            </IconButton>
-          </Grid>
           <div>{channelList.length ? channelDisplay : null}</div>
+          {/* <div>{user.length ? userDisplay : null}</div> */}
         </Grid>
       </div>
-      <div>{conversation.length ? conversationDisplay : null}</div>
+      <div>
+        {conversation.length ? (
+          <TableContainer component={Paper}>
+            <Table className={classes.table} aria-label="conversation table">
+              <TableHead>
+                <StyledTableRow>
+                  <StyledTableCell></StyledTableCell>
+                  <StyledTableCell>Sender</StyledTableCell>
+                  <StyledTableCell align="right">Message</StyledTableCell>
+                  <StyledTableCell align="right">Date</StyledTableCell>
+                  <StyledTableCell align="right">Reactions</StyledTableCell>
+                </StyledTableRow>
+              </TableHead>
+              <TableBody>
+                {conversation.map((row, index) => (
+                  <ConversationDisplay key={(row, index)} row={row} />
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        ) : null}
+      </div>
     </>
   );
 }

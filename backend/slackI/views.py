@@ -64,12 +64,57 @@ class GetConversationApiView(ListAPIView):
         res = res['user'].get('profile')
         detail = {
             'sender_id': sender_id,
-            'real_name': res['real_name'],
-            'display_name': res['display_name'],
-            'email': res['email']
+            'real_name': res.get('real_name', ''),
+            'display_name': res.get('display_name', ''),
+            'email': res.get('email', '')
         }
 
         return detail
+
+    def message_details(self, channel_id, client, thread_ts, obj, token_team):
+        sender_details = []
+        thread_conversation_list = []
+        response = client.conversations_replies(
+            channel=channel_id,
+            ts=thread_ts
+        )
+        threaded_messages = response['messages']
+        for msg in threaded_messages:
+            message = msg.get('text')
+            message_date = float(msg.get('ts'))
+            message_date = datetime.fromtimestamp(message_date)
+            sender_id = msg.get('user') if msg.get('user') else msg.get('bot_id')
+            reactions = len(msg.get('reactions')) if msg.get('reactions') else 0
+
+            if not any(d['sender_id'] == sender_id for d in sender_details):
+                if not (sender_id.startswith('B')):
+                    sender_dict = obj.sender_details(sender_id, token_team)
+
+                else:
+                    sender_dict = {
+                        'sender_id': sender_id,
+                        'real_name': "bot",
+                        'display_name': "bot",
+                        'email': ""
+                    }
+
+                sender_details.append(sender_dict)
+
+            thread_conversation_list.append({
+                'message': message,
+                'message_date': message_date.strftime("%d/%m/%Y"),
+                'sender_id': sender_id,
+                'channel': channel_id,
+                'reactions': reactions
+            })
+            for item in thread_conversation_list:
+                for sender in sender_details:
+                    if item['sender_id'] == sender['sender_id']:
+                        item.update({
+                            'sender_name': sender['real_name'],
+                            'sender_email': sender['email']
+                        })
+        return thread_conversation_list
 
     def list(self, request, *args, **kwargs):
         """
@@ -94,6 +139,7 @@ class GetConversationApiView(ListAPIView):
         conversation_objects_list = []
         sender_object_list = []
         sender_details = []
+
         channel_obj = get_object_or_404(
             Channel.objects.select_related('token'),
             channel_id=channel_id_param
@@ -102,24 +148,29 @@ class GetConversationApiView(ListAPIView):
         channel_id = channel_obj.channel_id
         token_team = channel_obj.token.token_team
         client = slack.WebClient(token=token_team)
+
+        # To get list of users of selected channel
+        res = client.channels_info(channel=channel_id)
+        user_list = res['channel'].get('members')
+
         response = client.conversations_history(
             channel=channel_id,
             limit=MESSAGES_PER_PAGE,
-            # Start of time range of messages to include in
-            # results. default till now
             oldest=int(start_date),
-            # End of time range of messages to include in results.
-            # Add one day extra to include
             latest=int(end_date)
         )
         assert response["ok"]
         messages_all = response['messages']
 
         for msg in messages_all:
+            thread_ts = msg.get('thread_ts') if msg.get('thread_ts') else 0
+            if thread_ts:
+                thread_conversation_list = obj.message_details(channel_id, client, thread_ts, obj, token_team)
             message = msg.get('text')
             message_date = float(msg.get('ts'))
             message_date = datetime.fromtimestamp(message_date)
             sender_id = msg.get('user') if msg.get('user') else msg.get('bot_id')
+            reactions = len(msg.get('reactions')) if msg.get('reactions') else 0
 
             if not any(d['sender_id'] == sender_id for d in sender_details):
                 if not (sender_id.startswith('B')):
@@ -156,7 +207,9 @@ class GetConversationApiView(ListAPIView):
                 'message': message,
                 'message_date': message_date.strftime("%d/%m/%Y"),
                 'sender_id': sender_id,
-                'channel': channel_id
+                'channel': channel_id,
+                'reactions': reactions,
+                'threaded_message': thread_conversation_list if thread_ts else None
             })
             for item in conversation_list:
                 for sender in sender_details:
@@ -165,13 +218,21 @@ class GetConversationApiView(ListAPIView):
                             'sender_name': sender['real_name'],
                             'sender_email': sender['email']
                         })
+        # print("conversation_list:", conversation_list)
+        channel_user = []
+        for user in user_list:
+            for sender in sender_details:
+                if user == sender['sender_id']:
+                    channel_user.append({user:sender['real_name']})
 
+        conversation_user_list=[]
+        conversation_user_list.append({'conversation_list': conversation_list, 'channel_user': channel_user})
         Sender.objects.filter(channel=channel_obj.id).delete()
         Conversation.objects.filter(channel=channel_obj.id).delete()
         Sender.objects.bulk_create(sender_object_list)
         Conversation.objects.bulk_create(conversation_objects_list)
 
-        return Response(conversation_list)
+        return Response(conversation_user_list)
 
 
 

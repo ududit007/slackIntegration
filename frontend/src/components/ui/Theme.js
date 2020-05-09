@@ -5,14 +5,17 @@ const arcBlue = "#081123";
 export default createMuiTheme({
     palette: {
         common: {
-            blue: "#204B33",
-            orange: "#FFBA60"
+            blue: "#67E2D0",
+            orange: "#FFBA60",
+            white: "white",
+            black: "black"
         },
         primary: {
             main: "#087223"
         },
         secondary: {
-            main: "#FFBA60"
+            main: "#FFBA60",
+            light: "104B06"
         }
     },
     typography: {
@@ -39,7 +42,7 @@ export default createMuiTheme({
         h3: {
             fontFamily: "Pacifico",
             fontSize: "2.5rem",
-            color: arcBlue
+            color: arcBlue,
         },
         h4: {
             fontFamily: "Raleway",
