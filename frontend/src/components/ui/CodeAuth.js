@@ -7,7 +7,6 @@ import { Redirect } from "react-router-dom";
 export default function CodeAuth() {
     const location = useLocation();
     const values = queryString.parse(location.search)
-    console.log(values.code)
     return(
         <Redirect to={{
             pathname: '/channels',

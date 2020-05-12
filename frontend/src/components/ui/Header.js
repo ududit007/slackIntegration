@@ -3,6 +3,7 @@ import { makeStyles, AppBar, Toolbar } from "@material-ui/core";
 import Theme from "./Theme";
 import { Grid, Typography, Button } from "@material-ui/core";
 import CssBaseline from "@material-ui/core/CssBaseline";
+import { uiConst } from "../../config/Constants";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -72,18 +73,17 @@ export default function Header(props) {
               </Typography>
             </Grid>
             <Grid item xs={12} sm={3} component={"a"}>
-              {/* <img src={slacIcon} alt="icon" className={classes.icon} /> */}
             </Grid>
             <Grid xs={12} sm={4} className={classes.signButton}>
               {props.showSignIn ? (
                 <Button className={classes.buttons}>
                   <a
                     target="_top"
-                    href="https://slack.com/oauth/v2/authorize?user_scope=channels:read,users:read,groups:read,mpim:read,im:read,channels:history,groups:history,mpim:history,im:history,users:read.email&client_id=1069051054627.1081234990135"
+                    href= {uiConst.slackAuthUrl}
                   >
                     <img
                       alt="login with slack"
-                      src="https://api.slack.com/img/sign_in_with_slack.png"
+                      src={uiConst.siginInImageUrl}
                     />
                   </a>
                 </Button>

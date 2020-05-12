@@ -1,5 +1,23 @@
 import {axiosInstance}  from "../config/Client";
+import {uiConst} from "../config/Constants";
+import Axios from 'axios';
 
+// Action to get token for selected workspace
+export const getToken = async(code) => {
+    try {
+        const  url =  `${uiConst.slackTokenUrl}${code}`
+        console.log("url:", url)
+        const response = await Axios.get(
+           url
+        );
+        console.log("response_data:", response.data)
+        let access_token = response.data["authed_user"].access_token;
+        return access_token
+      } catch (error) {
+        console.log(error);
+      }
+      return false
+}
 
 // Action to get conversation of selected channel
 export const getConversations = async (id, startDate, endDate) => {

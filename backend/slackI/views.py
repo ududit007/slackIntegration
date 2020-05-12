@@ -218,7 +218,6 @@ class GetConversationApiView(ListAPIView):
                             'sender_name': sender['real_name'],
                             'sender_email': sender['email']
                         })
-        # print("conversation_list:", conversation_list)
         channel_user = []
         for user in user_list:
             for sender in sender_details:

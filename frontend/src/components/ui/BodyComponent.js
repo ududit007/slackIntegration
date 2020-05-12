@@ -10,7 +10,6 @@ import {
 } from "@material-ui/pickers";
 import DateFnsUtils from "@date-io/date-fns";
 import * as SlackAction from "../../action/SlackAction";
-import Axios from "axios";
 import ConversationDisplay from "./ConversationDisplay";
 
 const useStyles = makeStyles((theme) => ({
@@ -151,10 +150,6 @@ export default function BodyComponent(props) {
     getConversation(channelId);
   };
 
-  const handleClose = () => {
-    setOpen(false);
-  };
-
   const handleOpen = () => {
     setOpen(true);
   };
@@ -175,17 +170,19 @@ export default function BodyComponent(props) {
     setEndDate(date.toISOString().slice(0, 10));
   };
 
+  // To get token of workspace
   const getToken = async (code) => {
     try {
-      const response = await Axios.get(
-        `https://slack.com/api/oauth.v2.access?client_id=1069051054627.1081234990135&client_secret=1d5b31b0a7d20b4baffbf2e86f1db413&code=${code}`
-      );
-      let access_token = response.data["authed_user"].access_token;
-      console.log("token:", access_token);
-      changeToken(access_token);
+      if (code) {
+        let access_token = await SlackAction.getToken(code);
+        if (access_token){
+          changeToken(access_token);
+        }
+      }
     } catch (error) {
       console.log(error);
     }
+    return false;
   };
 
   useEffect(() => {
