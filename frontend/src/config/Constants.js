@@ -1,5 +1,6 @@
-const clientId = process.env.CLIENT_ID
-const clientSecret = process.env.CLIENT_SECRET
+const clientId = '1069051054627.1081234990135'
+const clientSecret = '1d5b31b0a7d20b4baffbf2e86f1db413'
+console.log("sss:", process.env.REACT_APP_URL, process.env.CLIENT_ID)
 
 export const uiConst = {
     url: process.env.REACT_APP_URL,

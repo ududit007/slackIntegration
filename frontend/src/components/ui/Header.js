@@ -67,14 +67,14 @@ export default function Header(props) {
         <CssBaseline />
         <Toolbar className={classes.toolbar}>
           <Grid container>
-            <Grid item xs={12} sm={5} justify="flex-start">
+            <Grid item xs={12} sm={5}>
               <Typography variant="h3" className={classes.header}>
                 Slackyy
               </Typography>
             </Grid>
             <Grid item xs={12} sm={3} component={"a"}>
             </Grid>
-            <Grid xs={12} sm={4} className={classes.signButton}>
+            <Grid item xs={12} sm={4} className={classes.signButton}>
               {props.showSignIn ? (
                 <Button className={classes.buttons}>
                   <a
