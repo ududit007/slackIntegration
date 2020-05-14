@@ -3,7 +3,7 @@ import { InputLabel, MenuItem, useMediaQuery } from "@material-ui/core";
 import { Grid, FormControl, Select, Button, Paper } from "@material-ui/core";
 import { withStyles, makeStyles, useTheme } from "@material-ui/core/styles";
 import { Table, TableBody, TableCell, TableContainer } from "@material-ui/core";
-import { TableHead, TableRow } from "@material-ui/core";
+import { TableHead, TableRow, Typography } from "@material-ui/core";
 import {
   MuiPickersUtilsProvider,
   KeyboardDatePicker,
@@ -11,6 +11,8 @@ import {
 import DateFnsUtils from "@date-io/date-fns";
 import * as SlackAction from "../../action/SlackAction";
 import ConversationDisplay from "./ConversationDisplay";
+import loadingImg from "./../../assets/loading.gif";
+
 
 const useStyles = makeStyles((theme) => ({
   rootBody: {
@@ -118,6 +120,8 @@ export default function BodyComponent(props) {
   const [conversation, setConversation] = useState([]);
   const [user, setUser] = useState([]);
   const [channelId, setChannelId] = useState("");
+  const [convo, setConvo] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [startDate, setStartDate] = useState(
     new Date(date.getFullYear(), date.getMonth() - 1, 2)
       .toISOString()
@@ -131,13 +135,22 @@ export default function BodyComponent(props) {
   // To get conversation of selected channel
   const getConversation = async (id) => {
     try {
+      setIsLoading(true);
       let response = await SlackAction.getConversations(id, startDate, endDate);
-      if (response) {
+      if (response[0].conversation_list.length) {
         setConversation(response[0].conversation_list);
         setUser(response[0].channel_user);
       }
+      else{
+        console.log("inside else")
+        setConversation([])
+        setConvo(true)
+      }
+      setIsLoading(false)
     } catch (error) {
       console.log(error);
+      setConvo(true)
+      setIsLoading(false)
     }
   };
 
@@ -203,7 +216,9 @@ export default function BodyComponent(props) {
           team_name: tokenTeam.team_name
         });
         if (response) {
+          console.log("reee:", response)
           setChannelList(response);
+          setChannelId(response[0].channel_id);
         }
       }
     } catch (error) {
@@ -316,6 +331,7 @@ export default function BodyComponent(props) {
         </Grid>
       </div>
       <div>
+      {isLoading && <img src={loadingImg} width="32" height="32" style={{display: "block", margin: "auto"}} />}
         {conversation.length ? (
           <TableContainer component={Paper}>
             <Table className={classes.table} aria-label="conversation table">
@@ -335,7 +351,7 @@ export default function BodyComponent(props) {
               </TableBody>
             </Table>
           </TableContainer>
-        ) : null}
+        ) : (convo ? <Typography variant="h3" style={{textAlign: "center"}}>No message for  selected channel and date range</Typography> : null)}
       </div>
     </>
   );
