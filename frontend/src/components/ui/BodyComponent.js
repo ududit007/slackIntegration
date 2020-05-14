@@ -174,9 +174,9 @@ export default function BodyComponent(props) {
   const getToken = async (code) => {
     try {
       if (code) {
-        let access_token = await SlackAction.getToken(code);
-        if (access_token){
-          changeToken(access_token);
+        let team = await SlackAction.getToken(code);
+        if (team.access_token){
+          changeToken(team);
         }
       }
     } catch (error) {
@@ -198,7 +198,9 @@ export default function BodyComponent(props) {
     try {
       if (tokenTeam) {
         let response = await SlackAction.getChannelList({
-          token_team: tokenTeam,
+          token_team: tokenTeam.access_token,
+          team_id: tokenTeam.team_id,
+          team_name: tokenTeam.team_name
         });
         if (response) {
           setChannelList(response);

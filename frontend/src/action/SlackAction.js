@@ -6,13 +6,14 @@ import Axios from 'axios';
 export const getToken = async(code) => {
     try {
         const  url =  `${uiConst.slackTokenUrl}${code}`
-        console.log("url:", url)
         const response = await Axios.get(
            url
         );
-        console.log("response_data:", response.data)
         let access_token = response.data["authed_user"].access_token;
-        return access_token
+        let team_name = response.data["team"].name;
+        let team_id = response.data["team"].id;
+        let team = {"access_token": access_token, "team_name": team_name, "team_id": team_id}
+        return team
       } catch (error) {
         console.log(error);
       }

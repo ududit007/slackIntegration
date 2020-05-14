@@ -22,7 +22,16 @@ class CreateTokenApiView(APIView):
         :return: response object with channel list
         """
         token_team = request.data.get('token_team')
-        token_object, created = Token.objects.get_or_create(token_team=token_team)
+        team_id = request.data.get('team_id')
+        team_name = request.data.get('team_name')
+
+        # token_object, created = Token.objects.get_or_create(token_team=token_team)
+
+        token_object, created = Token.objects.get_or_create(
+            team_id=team_id,
+            defaults={'token_team': token_team, 'team_name': team_name}
+        )
+
         channel_list = []
         channel_object_list = []
         client = slack.WebClient(token=token_team)

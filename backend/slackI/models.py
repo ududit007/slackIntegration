@@ -3,6 +3,8 @@ from django.db import models
 
 class Token(models.Model):
     token_team = models.CharField(max_length=100, null=False, blank=False)
+    team_id = models.CharField(max_length=100, null=True, blank=False)
+    team_name = models.CharField(max_length=100, null=True, blank=False)
 
     def __str__(self):
         return '{}'.format(self.token_team)
