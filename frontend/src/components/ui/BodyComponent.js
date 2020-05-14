@@ -159,7 +159,6 @@ export default function BodyComponent(props) {
   };
 
   const handleChannel = () => {
-    setChannel(channelId);
     getConversation(channelId);
   };
 
@@ -264,7 +263,7 @@ export default function BodyComponent(props) {
           </InputLabel>
           <Select
             native
-            value={channel}
+            value={channelId}
             onChange={handleChannelId}
             inputProps={{
               name: "channel",
